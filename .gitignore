@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Environment and API keys — keep secret!
+.env
+.env.local
+.env.*.local
+config.js
+
+# OS files
+.DS_Store
+Thumbs.db
