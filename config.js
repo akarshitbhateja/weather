@@ -10,10 +10,10 @@ const CONFIG = {
     // Left empty for public git commits.
     // Set OPENWEATHER_API_KEY in Vercel Project Settings > Environment Variables.
     API_KEY: "",
-    
+
     // OpenWeatherMap API Base URL
     BASE_URL: "https://api.openweathermap.org/data/2.5",
-    
+
     // Default Location Mode: "current" (auto GPS/IP) or city name
     DEFAULT_LOCATION: "current",
 
@@ -61,7 +61,7 @@ const CONFIG = {
                 if (!trimmed || trimmed.startsWith("#")) continue;
                 const [key, ...values] = trimmed.split("=");
                 const val = values.join("=").trim().replace(/^["']|["']$/g, "");
-                
+
                 const k = key.trim();
                 if (k === "OPENWEATHER_API_KEY" || k === "VITE_OPENWEATHER_API_KEY" || k === "API_KEY") {
                     if (val && !localStorage.getItem("weather_api_key")) {

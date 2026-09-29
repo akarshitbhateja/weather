@@ -77,14 +77,14 @@ function formatHour(date) {
 }
 
 function dayName(date, full = false) {
-    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const short = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const short = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return full ? days[date.getDay()] : short[date.getDay()];
 }
 
 function formatDate(date) {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`;
 }
 
@@ -447,7 +447,7 @@ async function fetchIPLocation() {
         const res = await fetch('https://ipapi.co/json/');
         const d = await res.json();
         if (d.latitude) return { lat: d.latitude, lon: d.longitude, city: d.city, country: d.country_name, country_code: d.country_code };
-    } catch {}
+    } catch { }
     return null;
 }
 

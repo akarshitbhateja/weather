@@ -19,9 +19,9 @@ module.exports = async function handler(req, res) {
     const { q, lat, lon, units = "metric" } = req.query;
 
     // Securely read from Vercel Environment Variables
-    const apiKey = process.env.OPENWEATHER_API_KEY || 
-                   process.env.VITE_OPENWEATHER_API_KEY || 
-                   process.env.API_KEY;
+    const apiKey = process.env.OPENWEATHER_API_KEY ||
+        process.env.VITE_OPENWEATHER_API_KEY ||
+        process.env.API_KEY;
 
     if (!apiKey) {
         return res.status(503).json({

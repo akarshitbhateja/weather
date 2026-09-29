@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,9 +8,11 @@
     <title>Aura Weather</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
     <div class="page-wrapper">
@@ -24,13 +27,16 @@
                         <button class="unit-btn" id="btnFahrenheit">°F</button>
                     </div>
                     <button class="nav-icon-btn" id="btnCurrentLocation" title="My Location">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="3 11 22 2 13 21 11 13 3 11" />
                         </svg>
                     </button>
                     <button class="nav-icon-btn" id="btnRefresh" title="Refresh">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M22 13a10 10 0 0 1-17.1 7.1M2 11a10 10 0 0 1 17.1-7.1"/>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.5 2v6h-6M2.5 22v-6h6" />
+                            <path d="M22 13a10 10 0 0 1-17.1 7.1M2 11a10 10 0 0 1 17.1-7.1" />
                         </svg>
                     </button>
                 </div>
@@ -43,14 +49,19 @@
             <section class="search-section">
                 <div class="search-wrap">
                     <div class="search-bar" id="searchBar">
-                        <svg class="search-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        <svg class="search-ico" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
                         </svg>
-                        <input type="text" id="searchInput" class="search-input" placeholder="Search city or place..." autocomplete="off" spellcheck="false">
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search city or place..."
+                            autocomplete="off" spellcheck="false">
                         <button id="clearBtn" class="clear-btn" style="display:none">✕</button>
                         <button id="locationBtn" class="loc-btn">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3" />
+                                <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
                             </svg>
                             Locate me
                         </button>
@@ -78,8 +89,11 @@
             <!-- Error -->
             <div class="state-box" id="errorState" style="display:none">
                 <div class="error-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
                 </div>
                 <p class="error-msg" id="errorMessage">Location not found.</p>
@@ -96,7 +110,10 @@
                             <h1 class="city-name" id="cityName">—</h1>
                             <span class="country-tag" id="countryBadge"></span>
                             <span class="local-tag" id="currentLocBadge" style="display:none">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                                </svg>
                                 My Location
                             </span>
                         </div>
@@ -217,4 +234,5 @@
     <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
+
 </html>
