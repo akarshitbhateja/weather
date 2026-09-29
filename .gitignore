@@ -1,11 +1,10 @@
 # Dependencies
 node_modules/
 
-# Environment and API keys — keep secret!
+# Environment files containing real secrets — KEEP SECRET & NEVER COMMIT
 .env
 .env.local
 .env.*.local
-config.js
 
 # OS files
 .DS_Store

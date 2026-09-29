@@ -63,8 +63,8 @@
     const orbSecondary = document.getElementById("orbSecondary");
 
     // --- State ---
-    let currentUnit = localStorage.getItem("weather_unit") || "metric"; // "metric" or "imperial"
-    let currentCoords = null; // { lat, lon, isCurrentLocation: boolean }
+    let currentUnit = localStorage.getItem("weather_unit") || CONFIG.DEFAULT_UNIT || "metric";
+    let currentCoords = null; // { lat, lon }
     let lastQuery = "";
     let isViewingCurrentLocation = false;
     let searchDebounceTimer = null;
@@ -159,29 +159,142 @@
 
         const code = Number(conditionCode);
         if (code === 0 || code === 1) {
-            // Sunny / Clear
             orbPrimary.style.background = "radial-gradient(circle, #38bdf8, #f59e0b)";
             orbSecondary.style.background = "radial-gradient(circle, #6366f1, #0284c7)";
         } else if (code >= 51 && code <= 82) {
-            // Rain / Showers
             orbPrimary.style.background = "radial-gradient(circle, #0284c7, #334155)";
             orbSecondary.style.background = "radial-gradient(circle, #475569, #1e293b)";
         } else if (code >= 95) {
-            // Thunder
             orbPrimary.style.background = "radial-gradient(circle, #7c3aed, #1e1b4b)";
             orbSecondary.style.background = "radial-gradient(circle, #0369a1, #3b82f6)";
         } else {
-            // Clouds / Default
             orbPrimary.style.background = "radial-gradient(circle, #38bdf8, #6366f1)";
             orbSecondary.style.background = "radial-gradient(circle, #6366f1, #a855f7)";
         }
     }
 
-    // --- Weather Data Retrieval ---
+    // --- Vercel Serverless Proxy Integration ---
 
     /**
-     * Primary High-Precision Engine (Open-Meteo) with Full Hourly & Daily Coverage
+     * Try fetching through Vercel's secure serverless proxy (/api/weather)
+     * Keeps OPENWEATHER_API_KEY 100% secret on Vercel without exposing it in git or browser.
      */
+    async function fetchViaVercelProxy(query, lat, lon) {
+        if (!window.location.protocol.startsWith("http")) return null;
+        try {
+            const params = new URLSearchParams({ units: currentUnit });
+            if (lat !== undefined && lon !== undefined) {
+                params.append("lat", lat);
+                params.append("lon", lon);
+            } else if (query) {
+                params.append("q", query);
+            } else {
+                return null;
+            }
+
+            const res = await fetch(`/api/weather?${params.toString()}`);
+            if (!res.ok) return null;
+            const data = await res.json();
+            if (data && data.current) {
+                return parseVercelOpenWeatherData(data.current, data.forecast);
+            }
+            return null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function parseVercelOpenWeatherData(current, forecast) {
+        const dailyMap = {};
+        let weekMin = Infinity;
+        let weekMax = -Infinity;
+
+        if (forecast && forecast.list) {
+            forecast.list.forEach((item) => {
+                const dateKey = item.dt_txt.split(" ")[0];
+                const tMin = Math.round(item.main.temp_min);
+                const tMax = Math.round(item.main.temp_max);
+                if (!dailyMap[dateKey]) {
+                    dailyMap[dateKey] = {
+                        date: dateKey,
+                        min: tMin,
+                        max: tMax,
+                        desc: item.weather[0].description,
+                        icon: item.weather[0].icon,
+                    };
+                } else {
+                    dailyMap[dateKey].min = Math.min(dailyMap[dateKey].min, tMin);
+                    dailyMap[dateKey].max = Math.max(dailyMap[dateKey].max, tMax);
+                }
+            });
+        }
+
+        const todayKey = new Date().toISOString().split("T")[0];
+        const dailyList = Object.values(dailyMap)
+            .filter((d) => d.date !== todayKey)
+            .slice(0, 5)
+            .map((d) => {
+                if (d.min < weekMin) weekMin = d.min;
+                if (d.max > weekMax) weekMax = d.max;
+                return {
+                    day: getDayLabel(d.date),
+                    desc: d.desc,
+                    iconUrl: getIconUrl(d.icon),
+                    min: d.min,
+                    max: d.max,
+                };
+            });
+
+        // 24h Hourly list
+        const hourlyList = [];
+        if (forecast && forecast.list) {
+            forecast.list.slice(0, 8).forEach((item, idx) => {
+                hourlyList.push({
+                    timeLabel: idx === 0 ? "Now" : formatTime(new Date(item.dt * 1000)),
+                    temp: Math.round(item.main.temp),
+                    iconUrl: getIconUrl(item.weather[0].icon),
+                    pop: Math.round((item.pop || 0) * 100),
+                    isCurrent: idx === 0,
+                });
+            });
+        }
+
+        const isNight = current.weather[0].icon.endsWith("n");
+        const sunriseDate = new Date(current.sys.sunrise * 1000);
+        const sunsetDate = new Date(current.sys.sunset * 1000);
+        const visKm = current.visibility ? (current.visibility / 1000).toFixed(0) : "10";
+
+        return {
+            city: current.name,
+            country: current.sys.country || "",
+            temp: Math.round(current.main.temp),
+            feelsLike: Math.round(current.main.feels_like),
+            tempMax: Math.round(current.main.temp_max),
+            tempMin: Math.round(current.main.temp_min),
+            humidity: current.main.humidity,
+            windSpeed: `${Math.round(currentUnit === "metric" ? current.wind.speed * 3.6 : current.wind.speed)} ${getSpeedUnit()}`,
+            rawWindSpeed: Math.round(currentUnit === "metric" ? current.wind.speed * 3.6 : current.wind.speed),
+            uvIndex: "3.0",
+            visibility: currentUnit === "metric" ? `${visKm} km` : `${(Number(visKm) * 0.621371).toFixed(0)} mi`,
+            pressure: `${current.main.pressure} hPa`,
+            precipitationProb: hourlyList.length > 0 ? `${hourlyList[0].pop}%` : "0%",
+            condition: current.weather[0].description,
+            conditionCode: current.weather[0].id,
+            isNight: isNight,
+            iconUrl: getIconUrl(current.weather[0].icon),
+            sunriseStr: formatTime(sunriseDate),
+            sunsetStr: formatTime(sunsetDate),
+            sunriseTimestamp: sunriseDate.getTime(),
+            sunsetTimestamp: sunsetDate.getTime(),
+            hourly: hourlyList,
+            daily: dailyList,
+            weekMin: weekMin === Infinity ? Math.round(current.main.temp_min) : weekMin,
+            weekMax: weekMax === -Infinity ? Math.round(current.main.temp_max) : weekMax,
+        };
+    }
+
+    // --- Weather Data Retrieval (Open-Meteo Engine) ---
+
     async function fetchWeatherEngine(lat, lon, cityNameFallback) {
         const tempParam = currentUnit === "imperial" ? "&temperature_unit=fahrenheit" : "";
         const windParam = currentUnit === "imperial" ? "&wind_speed_unit=mph" : "";
@@ -191,7 +304,6 @@
         if (!res.ok) throw new Error("Weather service is temporarily unavailable.");
         const data = await res.json();
 
-        // Reverse-geocode city name if not already provided
         let resolvedCity = cityNameFallback;
         let resolvedCountry = "";
 
@@ -219,7 +331,6 @@
 
         const currentCond = wmoToWeather(cur.weather_code, isNight);
 
-        // Process next 24 hours
         const hourlyList = [];
         if (hourly && hourly.time) {
             const now = new Date();
@@ -241,7 +352,6 @@
             }
         }
 
-        // Process 5-day daily forecast
         const dailyList = [];
         let weekMin = Infinity;
         let weekMax = -Infinity;
@@ -293,13 +403,13 @@
             sunriseTimestamp: sunriseDate ? sunriseDate.getTime() : 0,
             sunsetTimestamp: sunsetDate ? sunsetDate.getTime() : 0,
             hourly: hourlyList,
-            daily: dailyList.slice(1, 6), // 5 days ahead
+            daily: dailyList.slice(1, 6),
             weekMin: weekMin,
             weekMax: weekMax,
         };
     }
 
-    // --- Sub-metric Descriptive Text Helpers ---
+    // --- Sub-metric Status Text Helpers ---
 
     function getHumidityStatus(h) {
         if (h < 30) return "Dry air";
@@ -432,7 +542,6 @@
             const row = document.createElement("div");
             row.className = "daily-row";
 
-            // Relative percentage positioning of range bar
             const leftPercent = Math.max(0, ((dayItem.min - data.weekMin) / span) * 100);
             const widthPercent = Math.max(10, ((dayItem.max - dayItem.min) / span) * 100);
 
@@ -468,7 +577,12 @@
         currentCoords = { lat, lon };
 
         try {
-            const data = await fetchWeatherEngine(lat, lon, cityName);
+            // First attempt secure Vercel backend proxy
+            let data = await fetchViaVercelProxy(null, lat, lon);
+            if (!data) {
+                // High-precision client engine fallback
+                data = await fetchWeatherEngine(lat, lon, cityName);
+            }
             renderWeather(data);
         } catch (err) {
             console.error("Error loading weather by coords:", err);
@@ -484,17 +598,21 @@
         lastQuery = cityName;
 
         try {
-            const geoRes = await fetch(`${CONFIG.OPEN_METEO_GEO_URL}?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`);
-            if (!geoRes.ok) throw new Error("Search service error.");
-            const geoData = await geoRes.json();
-            if (!geoData.results || geoData.results.length === 0) {
-                throw new Error(`City "${cityName}" not found. Please check spelling.`);
-            }
+            // First attempt secure Vercel backend proxy
+            let data = await fetchViaVercelProxy(cityName, null, null);
+            if (!data) {
+                const geoRes = await fetch(`${CONFIG.OPEN_METEO_GEO_URL}?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`);
+                if (!geoRes.ok) throw new Error("Search service error.");
+                const geoData = await geoRes.json();
+                if (!geoData.results || geoData.results.length === 0) {
+                    throw new Error(`City "${cityName}" not found. Please check spelling.`);
+                }
 
-            const match = geoData.results[0];
-            const data = await fetchWeatherEngine(match.latitude, match.longitude, match.name);
-            data.country = match.country_code || match.country || data.country;
-            currentCoords = { lat: match.latitude, lon: match.longitude };
+                const match = geoData.results[0];
+                data = await fetchWeatherEngine(match.latitude, match.longitude, match.name);
+                data.country = match.country_code || match.country || data.country;
+                currentCoords = { lat: match.latitude, lon: match.longitude };
+            }
             renderWeather(data);
         } catch (err) {
             console.error("Error loading weather by city:", err);
@@ -509,7 +627,6 @@
         showState("loading");
         loadingMessage.textContent = "Detecting your current location...";
 
-        // Step 1: Immediately initiate GPS via browser
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
@@ -537,7 +654,6 @@
                 }
             }
         } catch (e) {
-            // Second IP fallback
             try {
                 const altRes = await fetch(CONFIG.IP_GEO_FALLBACK_URL);
                 if (altRes.ok) {
@@ -552,7 +668,6 @@
             }
         }
 
-        // Ultimate graceful fallback if completely offline or blocked
         loadWeatherByCityName("London");
     }
 
@@ -598,7 +713,6 @@
 
     // --- Event Listeners ---
 
-    // Search Input
     searchInput.addEventListener("input", (e) => {
         const val = e.target.value;
         clearBtn.style.display = val.length > 0 ? "flex" : "none";
@@ -631,7 +745,6 @@
         }
     });
 
-    // Popular Quick Chips
     quickChips.addEventListener("click", (e) => {
         const chip = e.target.closest(".chip");
         if (chip && chip.dataset.city) {
@@ -641,7 +754,6 @@
         }
     });
 
-    // "My Location" Buttons (both header shortcut and search bar icon)
     function handleLocateMe() {
         detectCurrentLocationAndLoad();
     }
@@ -649,7 +761,6 @@
     btnCurrentLocation.addEventListener("click", handleLocateMe);
     locationBtn.addEventListener("click", handleLocateMe);
 
-    // Refresh Button
     btnRefresh.addEventListener("click", () => {
         if (currentCoords) {
             loadWeatherByCoords(currentCoords.lat, currentCoords.lon, isViewingCurrentLocation ? null : cityNameEl.textContent, isViewingCurrentLocation);
@@ -658,12 +769,10 @@
         }
     });
 
-    // Retry Button
     retryBtn.addEventListener("click", () => {
         detectCurrentLocationAndLoad();
     });
 
-    // Unit Toggle
     btnCelsius.addEventListener("click", () => {
         if (currentUnit === "metric") return;
         currentUnit = "metric";
@@ -686,9 +795,8 @@
         }
     });
 
-    // --- App Entry Point ---
+    // --- Entry Point ---
     function init() {
-        // Set unit toggle initial state
         if (currentUnit === "imperial") {
             btnFahrenheit.classList.add("active");
             btnCelsius.classList.remove("active");
@@ -697,7 +805,6 @@
             btnFahrenheit.classList.remove("active");
         }
 
-        // Automatic default location: Current location
         detectCurrentLocationAndLoad();
     }
 
